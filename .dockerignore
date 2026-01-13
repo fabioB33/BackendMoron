@@ -1,0 +1,44 @@
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+venv
+ENV
+env
+
+# Environment
+.env
+.env.*
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# Docs
+docs/
+*.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Uploads
+uploads/
+
+# Git
+.git
+.gitignore
