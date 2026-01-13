@@ -219,3 +219,4 @@ DEBUG=False
 3. Commit cambios (`git commit -am 'Agregar nueva feature'`)
 4. Push al branch (`git push origin feature/nueva-feature`)
 5. Crear Pull Request
+
