@@ -428,28 +428,18 @@ async def chat_with_ai(
         
         # Build messages for OpenAI
         messages = [{"role": "system", "content": system_message}]
-        
-        # Add conversation history
         for msg in history[:-1]:
-            messages.append({
-                "role": msg.get("role", "user"),
-                "content": msg.get("content", "")
-            })
-        
-        # Add current user message
+            messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
         messages.append({"role": "user", "content": chat_request.message})
         
-        # Get AI response from OpenAI
+        # Get AI response
         if openai_client:
             response = await openai_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                max_tokens=500,
-                temperature=0.7
+                model="gpt-4o-mini", messages=messages, max_tokens=500, temperature=0.7
             )
             ai_response = response.choices[0].message.content
         else:
-            ai_response = "El asistente de IA no está configurado. Contactá al administrador."
+            ai_response = "Asistente IA no configurado."
         
         # Save assistant message
         assistant_msg = ChatMessage(
@@ -647,33 +637,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ============ ROOT & HEALTH CHECK ENDPOINTS ============
-
 @app.get("/")
 async def root():
-    """Root endpoint - API info"""
-    return {
-        "name": "Argentina Habilitaciones API",
-        "version": "1.0",
-        "status": "running",
-        "docs": "/docs"
-    }
+    return {"name": "Argentina Habilitaciones API", "version": "1.0", "status": "running", "docs": "/docs"}
 
 @app.get("/health")
 @api_router.get("/health")
 async def health_check():
-    """Health check endpoint para monitoreo"""
     try:
         await db.command('ping')
-        db_status = "healthy"
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        db_status = "unhealthy"
-        return JSONResponse(
-            status_code=503,
-            content={"status": "unhealthy", "database": db_status}
-        )
-    return {"status": "healthy", "database": db_status}
+        return {"status": "healthy", "database": "connected"}
+    except:
+        return JSONResponse(status_code=503, content={"status": "unhealthy"})
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
