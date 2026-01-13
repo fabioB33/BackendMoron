@@ -686,6 +686,145 @@ async def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
+# ============ SEED DATABASE ENDPOINT ============
+
+@api_router.post("/seed")
+async def seed_database():
+    """Populate database with demo data - USE ONLY ONCE"""
+    try:
+        # Check if users already exist
+        existing_users = await db.users.count_documents({})
+        if existing_users > 0:
+            return {"message": "Database already has data", "users_count": existing_users}
+        
+        # Create demo users
+        users = [
+            {
+                "id": "user-1",
+                "email": "ciudadano@argentina.gob.ar",
+                "cuit_cuil": "20123456789",
+                "nombre": "Juan",
+                "apellido": "Pérez",
+                "telefono": "+54 11 1234-5678",
+                "role": "ciudadano",
+                "hashed_password": get_password_hash("demo123"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            },
+            {
+                "id": "user-2",
+                "email": "inspector@argentina.gob.ar",
+                "cuit_cuil": "20987654321",
+                "nombre": "María",
+                "apellido": "González",
+                "telefono": "+54 11 9876-5432",
+                "role": "inspector",
+                "hashed_password": get_password_hash("demo123"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            },
+            {
+                "id": "user-3",
+                "email": "admin@argentina.gob.ar",
+                "cuit_cuil": "20555555555",
+                "nombre": "Carlos",
+                "apellido": "Rodríguez",
+                "telefono": "+54 11 5555-5555",
+                "role": "administrador",
+                "hashed_password": get_password_hash("demo123"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            },
+            {
+                "id": "user-4",
+                "email": "comerciante@email.com",
+                "cuit_cuil": "20111222333",
+                "nombre": "Ana",
+                "apellido": "Martínez",
+                "telefono": "+54 11 1112-2233",
+                "role": "ciudadano",
+                "hashed_password": get_password_hash("demo123"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        ]
+        
+        await db.users.insert_many(users)
+        
+        # Create demo AFAPs
+        afaps = [
+            {
+                "id": "afap-1",
+                "numero_afap": 1001,
+                "user_id": "user-1",
+                "estado": "aprobado",
+                "solicitante_nombre": "Juan",
+                "solicitante_apellido": "Pérez",
+                "solicitante_cuit_cuil": "20123456789",
+                "solicitante_telefono": "+54 11 1234-5678",
+                "solicitante_email": "ciudadano@argentina.gob.ar",
+                "titular_tipo": "fisica",
+                "titular_nombre": "Juan Pérez",
+                "titular_cuit": "20123456789",
+                "cuenta_abl": "12345678",
+                "domicilio_calle": "Av. Rivadavia",
+                "domicilio_altura": "1234",
+                "domicilio_piso": None,
+                "domicilio_depto": None,
+                "domicilio_local": "PB",
+                "domicilio_localidad": "Morón",
+                "rubro_tipo": "Comercio Minorista",
+                "rubro_subrubro": "Panadería y Confitería",
+                "rubro_descripcion": "Panadería artesanal",
+                "metros_cuadrados": 85.5,
+                "cantidad_trabajadores": 3,
+                "documentos_urls": [],
+                "fecha_solicitud": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat(),
+                "fecha_vencimiento": (datetime.now(timezone.utc) + timedelta(days=25)).isoformat(),
+                "observaciones": "Aprobado - Cumple requisitos",
+                "inspector_asignado": "user-2"
+            },
+            {
+                "id": "afap-2",
+                "numero_afap": 1002,
+                "user_id": "user-4",
+                "estado": "pendiente",
+                "solicitante_nombre": "Ana",
+                "solicitante_apellido": "Martínez",
+                "solicitante_cuit_cuil": "20111222333",
+                "solicitante_telefono": "+54 11 1112-2233",
+                "solicitante_email": "comerciante@email.com",
+                "titular_tipo": "fisica",
+                "titular_nombre": "Ana Martínez",
+                "titular_cuit": "20111222333",
+                "cuenta_abl": "87654321",
+                "domicilio_calle": "Av. San Martín",
+                "domicilio_altura": "500",
+                "domicilio_piso": None,
+                "domicilio_depto": None,
+                "domicilio_local": "Local 2",
+                "domicilio_localidad": "Morón",
+                "rubro_tipo": "Comercio Minorista",
+                "rubro_subrubro": "Indumentaria",
+                "rubro_descripcion": "Boutique de ropa",
+                "metros_cuadrados": 120.0,
+                "cantidad_trabajadores": 2,
+                "documentos_urls": [],
+                "fecha_solicitud": (datetime.now(timezone.utc) - timedelta(days=2)).isoformat(),
+                "fecha_vencimiento": (datetime.now(timezone.utc) + timedelta(days=28)).isoformat(),
+                "observaciones": None,
+                "inspector_asignado": None
+            }
+        ]
+        
+        await db.afaps.insert_many(afaps)
+        
+        return {
+            "message": "Database seeded successfully",
+            "users_created": len(users),
+            "afaps_created": len(afaps)
+        }
+        
+    except Exception as e:
+        logger.error(f"Seed error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
