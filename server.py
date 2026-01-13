@@ -22,7 +22,7 @@ from auth import (
     get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES, security
 )
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from openai import AsyncOpenAI
 from pdf_generator import generate_afap_certificate
 from email_service import send_certificate_email, send_status_notification
 
@@ -34,8 +34,9 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# LLM Setup
-EMERGENT_LLM_KEY = os.getenv("EMERGENT_LLM_KEY")
+# LLM Setup - OpenAI
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 # Create the main app
 app = FastAPI(title="Argentina Habilitaciones API")
@@ -425,18 +426,30 @@ async def chat_with_ai(
             f"Respondé de forma concisa, amigable y en español argentino."
         )
         
-        # Initialize LLM Chat
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=chat_request.session_id,
-            system_message=system_message
-        ).with_model("openai", "gpt-5.2")
+        # Build messages for OpenAI
+        messages = [{"role": "system", "content": system_message}]
         
-        # Create user message for LLM
-        llm_user_message = UserMessage(text=chat_request.message)
+        # Add conversation history
+        for msg in history[:-1]:  # Exclude the current message we just saved
+            messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
+            })
         
-        # Get AI response
-        ai_response = await chat.send_message(llm_user_message)
+        # Add current user message
+        messages.append({"role": "user", "content": chat_request.message})
+        
+        # Get AI response from OpenAI
+        if openai_client:
+            response = await openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                max_tokens=500,
+                temperature=0.7
+            )
+            ai_response = response.choices[0].message.content
+        else:
+            ai_response = "El asistente de IA no está configurado. Por favor, contactá al administrador."
         
         # Save assistant message
         assistant_msg = ChatMessage(
